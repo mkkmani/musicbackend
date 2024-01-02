@@ -1,6 +1,6 @@
 const express = require('express')
 const { open } = require('sqlite')
-const sqlite3 = require('sqlite3').verbose()
+const sqlite3 = require('sqlite3')
 const path = require('path')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
