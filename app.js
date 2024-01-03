@@ -137,7 +137,7 @@ app.post(
     try {
       const addStudentQuery =
         "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?)";
-      await db.run(addStudentQuery, [
+       db.run(addStudentQuery, [
         name,
         email,
         mobile,
@@ -190,7 +190,7 @@ app.post("/addVideo", adminAuthorization, async (req, res) => {
     const { videoTitle, videoLink } = details;
     const addVideoQuery =
       "insert into videos (videoTitle,videoLink) values(?,?)";
-    await db.run(addVideoQuery, [videoTitle, videoLink]);
+     db.run(addVideoQuery, [videoTitle, videoLink]);
     res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
     res.status(500).json({ message: "Video adding failed" });
@@ -204,7 +204,7 @@ app.get("/search", async (req, res) => {
   const getVideoQuery = `SELECT * FROM video WHERE videoTitle LIKE ?`;
 
   try {
-    await db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
+   db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
       if (err) {
         res.status(400).json({ error: err.message });
       } else {
@@ -220,7 +220,7 @@ app.get("/search", async (req, res) => {
 app.get("/allVideos", async (req, res) => {
   try {
     const allVideosQuery = "SELECT * FROM videos";
-    await db.all(allVideosQuery, (err, rows) => {
+   db.all(allVideosQuery, (err, rows) => {
       if (err) {
         res.status(400).json({ error: err.message });
       } else {
