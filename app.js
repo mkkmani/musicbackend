@@ -52,7 +52,7 @@ const initDbAndServer = async () => {
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
 
-    app.listen(3000, () => {
+    app.listen(6000, () => {
       console.log("Database server is up and running at localhost 3000");
     });
   } catch (error) {
@@ -185,16 +185,27 @@ app.get("/allVideos", async (req, res) => {
     const allVideosQuery = "select * from videos";
     await db.run(allVideosQuery, (err, rows) => {
       if (err) {
-        res.send(err);
+        res.send(err.message);
       } else {
         res.status(200).send(rows);
       }
     });
-  } catch (error) {}
+  } catch (error) {
+    res.status(500).send("error in getting videos");
+  }
 });
 
 //sample checking
 
 app.get("/sample", (req, res) => {
   res.status(200).send("Working successfully, this is sample response");
+});
+
+app.post("/sample-login", (req, res) => {
+  const { loginDetails } = req.body;
+  const { username, password } = loginDetails;
+
+  const resp = `user logged in with username ${username} and password ${password}`;
+
+  res.status(200).send(resp);
 });
