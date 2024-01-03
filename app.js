@@ -65,53 +65,51 @@ initDbAndServer();
 //Middleware function to check student added or not
 
 const checkStudentAddedOrNot = async (req, res, next) => {
-  const { studentName, studentMobile, studentEmail, studentProfile } = req.body;
+  const { studentDetails } = req.body;
+  const { name, mobile, email, profile, password } = studentDetails;
   const checkStudentQuery = `select * from students where studentName=?`;
-  db.get(checkStudentQuery, [studentName], (err, row) => {
+  db.get(checkStudentQuery, [name], (err, row) => {
     if (err) {
       console.error(err.message);
-      res.status(500).send("Internal server error adding student failed");
+      res
+        .status(500)
+        .json({ message: "Internal server error adding student failed" });
     } else if (row) {
-      res.status(409).send("Student details already exists");
+      res.status(409).json({ message: "Student details already exists" });
     } else {
       req.studentDetails = {
-        studentName,
-        studentEmail,
-        studentMobile,
-        studentProfile,
+        name,
+        email,
+        mobile,
+        profile,
+        password,
       };
       next();
     }
   });
 };
 
-// Adding student
+// Add student
 
 app.post("/addStudent", checkStudentAddedOrNot, async (req, res) => {
   const { studentDetails } = req;
-  const {
-    studentName,
-    studentEmail,
-    studentMobile,
-    studentProfile,
-    studentPassword,
-  } = studentDetails;
+  const { name, email, mobile, profile, password } = studentDetails;
 
-  const hashedPassword = bcrypt.hash(studentPassword, 13);
+  const hashedPassword = bcrypt.hash(password, 13);
 
   try {
     const addStudentQuery =
       "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?)";
     await db.run(addStudentQuery, [
-      studentName,
-      studentEmail,
-      studentMobile,
-      studentProfile,
+      name,
+      email,
+      mobile,
+      profile,
       hashedPassword,
     ]);
-    res.status(200).send("Student added successfully");
+    res.status(200).json({ message: "Student added successfully" });
   } catch (error) {
-    res.status(500).send("Student adding failed");
+    res.status(500).json({ message: "request failed" });
   }
 });
 
@@ -126,22 +124,21 @@ app.post("/studentLogin", async (req, res) => {
 
   db.get(checkStudentQuery, [username, username], (err, row) => {
     if (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: "request failed" });
     } else if (!row) {
       res.status(401).send("Invalid username");
     } else {
       bcrypt.compare(password, row.studentPassword, (bcryptErr, bcryptRes) => {
         if (bcryptErr) {
-          res.status(500).send("Error occurred while comparing passwords");
+          res
+            .status(500)
+            .json({ message: "Error occurred while comparing passwords" });
         } else if (bcryptRes) {
           const payLoad = { id: row.id, studentName: row.studentName };
-          const jwtToken = jwt.sign(
-            payLoad,
-            "this is sample secret code for generating the jwt token"
-          );
-          res.status(200).send({ jwtToken });
+          const jwtToken = jwt.sign(payLoad, "student token");
+          res.status(200).json({ jwtToken: { jwtToken } });
         } else {
-          res.status(401).send("Invalid password");
+          res.status(401).json({ message: "Invalid password" });
         }
       });
     }
@@ -154,9 +151,9 @@ app.post("/addVideo", async (req, res) => {
   const addVideoQuery = "insert into videos (videoTitle,videoLink) values(?,?)";
   try {
     await db.run(addVideoQuery, [videoTitle, videoLink]);
-    res.status(200).send("Video added successfully");
+    res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
-    res.status(500).send("Video added failed");
+    res.status(500).json({ message: "Video adding failed" });
   }
 });
 
@@ -164,48 +161,85 @@ app.post("/addVideo", async (req, res) => {
 app.get("/search", async (req, res) => {
   const { videoTitle } = req.query;
 
-  const getVideoQuery = `select * from video where videoTitle like ?`;
+  const getVideoQuery = `SELECT * FROM video WHERE videoTitle LIKE ?`;
 
   try {
     await db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
       if (err) {
-        res.send(err.message);
+        res.status(400).json({ error: err.message });
       } else {
-        res.status(200).send(rows);
+        res.status(200).json({ video_details: rows });
       }
     });
   } catch (error) {
-    res.status(500).send(error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // Get all videos
 app.get("/allVideos", async (req, res) => {
   try {
-    const allVideosQuery = "select * from videos";
-    await db.run(allVideosQuery, (err, rows) => {
+    const allVideosQuery = "SELECT * FROM videos";
+    await db.all(allVideosQuery, (err, rows) => {
       if (err) {
-        res.send(err.message);
+        res.status(400).json({ error: err.message });
       } else {
-        res.status(200).send(rows);
+        res.status(200).json({ videos: rows });
       }
     });
   } catch (error) {
-    res.status(500).send("error in getting videos");
+    res.status(500).json({ error: "Error in getting videos" });
   }
 });
 
-//sample checking
+// Add admin
 
-app.get("/sample", (req, res) => {
-  res.status(200).send("Working successfully, this is sample response");
+app.post("/add-admin", async (req, res) => {
+  const { userDetails } = req.body;
+  const { name, password, mobile, email, profile } = userDetails;
+  const checkForAdmin =
+    "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
+
+  try {
+    const row = await db.get(checkForAdmin, [mobile, email]);
+
+    if (row) {
+      res.status(401).json({ message: "Admin details already exist" });
+    } else {
+      const hashedPassword = bcrypt.hash(password, 13);
+      const addAdminQuery =
+        "insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values (?,?,?,?,?)";
+      db.run(addAdminQuery, [name, mobile, email, profile, hashedPassword]);
+
+      res.status(200).json({ message: "Admin added successfully" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Error in checking/admin addition" });
+  }
 });
 
-app.post("/sample-login", (req, res) => {
+//Admin login
+
+app.post("/admin-login", async (req, res) => {
   const { loginDetails } = req.body;
   const { username, password } = loginDetails;
 
-  const resp = `user logged in with username ${username} and password ${password}`;
+  const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
+  db.run(checkAdmin, [username, username], (err, row) => {
+    if (err) {
+      res.status(500).json({ message: "Internal error" });
+    } else if (!row) {
+      res.status(400).json({ message: "Admin details not found" });
+    } else {
+      const passwordMatched = bcrypt.compare(password, row.adminPassword);
 
-  res.status(200).send(resp);
+      if (passwordMatched) {
+        const payLoad = { id: row.id, admin_name: row.adminName };
+        const jwtToken = jwt.sign(payLoad, "admin token");
+        res.status(200).json({ jwtToken: { jwtToken } });
+      } else {
+        res.status(401).json({ message: "Invalid password" });
+      }
+    }
+  });
 });
