@@ -260,29 +260,29 @@ app.post("/add-admin", adminAuthorization, async (req, res) => {
 //Admin login
 
 app.post("/admin-login", async (req, res) => {
-  // const { details } = req.body;
-  // const { username, password } = details;
+  const { details } = req.body;
+  const { username, password } = details;
 
-  // const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
-  // db.run(checkAdmin, [username, username], (err, row) => {
-  //   if (err) {
-  //     res.status(500).json({ message: "Internal error" });
-  //   } else if (!row) {
-  //     res.status(400).json({ message: "Admin details not found" });
-  //   } else {
-  //     const passwordMatched = bcrypt.compare(password, row.adminPassword);
+  const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
+  db.run(checkAdmin, [username, username], (err, row) => {
+    if (err) {
+      res.status(500).json({ message: "Internal error" });
+    } else if (!row) {
+      res.status(400).json({ message: "Admin details not found" });
+    } else {
+      const passwordMatched = bcrypt.compare(password, row.adminPassword);
 
-  //     if (passwordMatched) {
-  //       const payLoad = { id: row.id, admin_name: row.adminName };
-  //       const jwtToken = jwt.sign(payLoad, "admin token");
-  //       res.status(200).json({ jwtToken: { jwtToken } });
-  //     } else {
-  //       res.status(401).json({ message: "Invalid password" });
-  //     }
-  //   }
-  // });
+      if (passwordMatched) {
+        const payLoad = { id: row.id, admin_name: row.adminName };
+        const jwtToken = jwt.sign(payLoad, "admin token");
+        res.status(200).json({ jwtToken: { jwtToken } });
+      } else {
+        res.status(401).json({ message: "Invalid password" });
+      }
+    }
+  });
 
-  res.status(200).json({message:'admin login success'})
+  // res.status(200).json({message:'admin login success'})
 });
 
 //Add images to gallery
