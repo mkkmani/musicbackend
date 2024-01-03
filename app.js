@@ -4,8 +4,19 @@ const sqlite3 = require("sqlite3");
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const cors = require("cors");
 
 const app = express();
+
+app.use(express.json());
+
+app.use(
+  cors({
+    origin: "https://manimusic.netlify.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
+  })
+);
 
 const dbPath = path.join(__dirname, "musicdb.db");
 
