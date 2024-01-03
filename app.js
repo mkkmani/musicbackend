@@ -68,22 +68,15 @@ const initDbAndServer = async () => {
   }
 };
 
-initDbAndServer();
-
-//Middleware function to check student added or not
-
+//Middleware function to check students added or not
 const checkStudentAddedOrNot = async (req, res, next) => {
   const { details } = req.body;
   const { name, mobile, email, profile, password } = details;
-  const checkStudentQuery = `select * from students where studentName=?`;
-  db.get(checkStudentQuery, [name], (err, row) => {
-    if (err) {
-      console.error(err.message);
-      res
-        .status(500)
-        .json({ message: "Internal server error adding student failed" });
-    } else if (row) {
-      res.status(409).json({ message: "Student details already exists" });
+  const checkStudentQuery = `SELECT * FROM students WHERE studentName=?`;
+  try {
+    const row = await db.get(checkStudentQuery, [name]);
+    if (row) {
+      res.status(409).json({ message: "Student details already exist" });
     } else {
       req.details = {
         name,
@@ -94,11 +87,12 @@ const checkStudentAddedOrNot = async (req, res, next) => {
       };
       next();
     }
-  });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error adding student failed" });
+  }
 };
 
 //Middleware function for authorization
-
 const adminAuthorization = async (req, res, next) => {
   const { details } = req.body;
   const authHeader = req.headers["authorization"];
@@ -123,36 +117,22 @@ const adminAuthorization = async (req, res, next) => {
 };
 
 // Add student
+app.post("/addStudent", adminAuthorization, checkStudentAddedOrNot, async (req, res) => {
+  const { details } = req;
+  const { name, email, mobile, profile, password } = details;
 
-app.post(
-  "/addStudent",
-  adminAuthorization,
-  checkStudentAddedOrNot,
-  async (req, res) => {
-    const { details } = req;
-    const { name, email, mobile, profile, password } = studentDetails;
-
-    const hashedPassword = bcrypt.hash(password, 13);
-
-    try {
-      const addStudentQuery =
-        "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?)";
-       db.run(addStudentQuery, [
-        name,
-        email,
-        mobile,
-        profile,
-        hashedPassword,
-      ]);
-      res.status(200).json({ message: "Student added successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "request failed" });
-    }
+  try {
+    const hashedPassword = await bcrypt.hash(password, 13);
+    const addStudentQuery =
+      "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?, ?)";
+    await db.run(addStudentQuery, [name, email, mobile, profile, hashedPassword]);
+    res.status(200).json({ message: "Student added successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Request failed" });
   }
-);
+});
 
 //Login student
-
 app.post("/studentLogin", async (req, res) => {
   const { details } = req.body;
   const { username, password } = details;
@@ -233,11 +213,10 @@ app.get("/allVideos", async (req, res) => {
 });
 
 // Add admin
-
-app.post("/add-admin", adminAuthorization, async (req, res) => {
+ app.post("/add-admin", adminAuthorization, async (req, res) => {
   try {
-    const { details } = req;
-    const { name, password, mobile, email, profile } = userDetails;
+    const { details } = req.body;
+    const { name, password, mobile, email, profile } = details;
     const checkForAdmin =
       "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
     const row = await db.get(checkForAdmin, [mobile, email]);
@@ -245,11 +224,10 @@ app.post("/add-admin", adminAuthorization, async (req, res) => {
     if (row) {
       res.status(401).json({ message: "Admin details already exist" });
     } else {
-      const hashedPassword = bcrypt.hash(password, 13);
+      const hashedPassword = await bcrypt.hash(password, 13);
       const addAdminQuery =
-        "insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values (?,?,?,?,?)";
-      db.run(addAdminQuery, [name, mobile, email, profile, hashedPassword]);
-
+        "INSERT INTO admins (adminName, adminMobile, adminEmail, adminProfile, adminPassword) VALUES (?, ?, ?, ?, ?)";
+      await db.run(addAdminQuery, [name, mobile, email, profile, hashedPassword]);
       res.status(200).json({ message: "Admin added successfully" });
     }
   } catch (error) {
@@ -258,7 +236,6 @@ app.post("/add-admin", adminAuthorization, async (req, res) => {
 });
 
 //Admin login
-
 app.post("/admin-login", async (req, res) => {
   const { details } = req.body;
   const { username, password } = details;
@@ -270,12 +247,12 @@ app.post("/admin-login", async (req, res) => {
     } else if (!row) {
       res.status(400).json({ message: "Admin details not found" });
     } else {
-      const passwordMatched = bcrypt.compare(password, row.adminPassword);
+      const passwordMatched = await bcrypt.compare(password, row.adminPassword);
 
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ jwtToken: { jwtToken } });
+        res.status(200).json({ jwt_token:  jwtToken  });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
@@ -286,15 +263,16 @@ app.post("/admin-login", async (req, res) => {
 });
 
 //Add images to gallery
-
 app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
   try {
-    const { details } = req;
+    const { details } = req.body;
     const { imageUrl } = details;
-    const addImageQuery = "insert into gallery(imageUrl) values (?)";
-    db.run(addImageQuery, [imageUrl]);
+    const addImageQuery = "INSERT INTO gallery(imageUrl) VALUES (?)";
+    await db.run(addImageQuery, [imageUrl]);
     res.status(200).json({ message: "Image added successfully" });
   } catch (error) {
-    res.status(500).send({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
+
+initDbAndServer();
