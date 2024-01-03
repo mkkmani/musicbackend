@@ -48,9 +48,17 @@ const initDbAndServer = async () => {
   )
 `;
 
+    const createGalleryQuery = `
+        CREATE TABLE if not exists gallery (
+            id INTEGER PRIMARY KEY,
+            imageUrl text
+        )
+    `;
+
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
+    await db.run(createGalleryQuery);
 
     app.listen(6000, () => {
       console.log("Database server is up and running at localhost 3000");
@@ -65,8 +73,8 @@ initDbAndServer();
 //Middleware function to check student added or not
 
 const checkStudentAddedOrNot = async (req, res, next) => {
-  const { studentDetails } = req.body;
-  const { name, mobile, email, profile, password } = studentDetails;
+  const { details } = req.body;
+  const { name, mobile, email, profile, password } = details;
   const checkStudentQuery = `select * from students where studentName=?`;
   db.get(checkStudentQuery, [name], (err, row) => {
     if (err) {
@@ -77,7 +85,7 @@ const checkStudentAddedOrNot = async (req, res, next) => {
     } else if (row) {
       res.status(409).json({ message: "Student details already exists" });
     } else {
-      req.studentDetails = {
+      req.details = {
         name,
         email,
         mobile,
@@ -89,35 +97,65 @@ const checkStudentAddedOrNot = async (req, res, next) => {
   });
 };
 
+//Middleware function for authorization
+
+const adminAuthorization = async (req, res, next) => {
+  const { details } = req.body;
+  const authHeader = req.headers["authorization"];
+
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+    try {
+      const validToken = jwt.verify(token, "admin token");
+
+      if (validToken) {
+        req.details = req.body.details;
+        next();
+      } else {
+        res.status(401).json({ message: "Invalid token" });
+      }
+    } catch (error) {
+      res.status(401).json({ message: "Invalid token" });
+    }
+  } else {
+    res.status(401).json({ message: "Unauthorized access" });
+  }
+};
+
 // Add student
 
-app.post("/addStudent", checkStudentAddedOrNot, async (req, res) => {
-  const { studentDetails } = req;
-  const { name, email, mobile, profile, password } = studentDetails;
+app.post(
+  "/addStudent",
+  adminAuthorization,
+  checkStudentAddedOrNot,
+  async (req, res) => {
+    const { details } = req;
+    const { name, email, mobile, profile, password } = studentDetails;
 
-  const hashedPassword = bcrypt.hash(password, 13);
+    const hashedPassword = bcrypt.hash(password, 13);
 
-  try {
-    const addStudentQuery =
-      "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?)";
-    await db.run(addStudentQuery, [
-      name,
-      email,
-      mobile,
-      profile,
-      hashedPassword,
-    ]);
-    res.status(200).json({ message: "Student added successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "request failed" });
+    try {
+      const addStudentQuery =
+        "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?)";
+      await db.run(addStudentQuery, [
+        name,
+        email,
+        mobile,
+        profile,
+        hashedPassword,
+      ]);
+      res.status(200).json({ message: "Student added successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "request failed" });
+    }
   }
-});
+);
 
 //Login student
 
 app.post("/studentLogin", async (req, res) => {
-  const { loginDetails } = req.body;
-  const { username, password } = loginDetails;
+  const { details } = req.body;
+  const { username, password } = details;
 
   const checkStudentQuery =
     "SELECT * FROM students WHERE studentEmail = ? OR studentMobile = ?";
@@ -146,10 +184,12 @@ app.post("/studentLogin", async (req, res) => {
 });
 
 // Add video
-app.post("/addVideo", async (req, res) => {
-  const { videoTitle, videoLink } = req.body;
-  const addVideoQuery = "insert into videos (videoTitle,videoLink) values(?,?)";
+app.post("/addVideo", adminAuthorization, async (req, res) => {
   try {
+    const { details } = req.details;
+    const { videoTitle, videoLink } = details;
+    const addVideoQuery =
+      "insert into videos (videoTitle,videoLink) values(?,?)";
     await db.run(addVideoQuery, [videoTitle, videoLink]);
     res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
@@ -194,13 +234,12 @@ app.get("/allVideos", async (req, res) => {
 
 // Add admin
 
-app.post("/add-admin", async (req, res) => {
-  const { userDetails } = req.body;
-  const { name, password, mobile, email, profile } = userDetails;
-  const checkForAdmin =
-    "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
-
+app.post("/add-admin", adminAuthorization, async (req, res) => {
   try {
+    const { details } = req;
+    const { name, password, mobile, email, profile } = userDetails;
+    const checkForAdmin =
+      "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
     const row = await db.get(checkForAdmin, [mobile, email]);
 
     if (row) {
@@ -221,8 +260,8 @@ app.post("/add-admin", async (req, res) => {
 //Admin login
 
 app.post("/admin-login", async (req, res) => {
-  const { loginDetails } = req.body;
-  const { username, password } = loginDetails;
+  const { details } = req.body;
+  const { username, password } = details;
 
   const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
   db.run(checkAdmin, [username, username], (err, row) => {
@@ -242,4 +281,18 @@ app.post("/admin-login", async (req, res) => {
       }
     }
   });
+});
+
+//Add images to gallery
+
+app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
+  try {
+    const { details } = req;
+    const { imageUrl } = details;
+    const addImageQuery = "insert into gallery(imageUrl) values (?)";
+    db.run(addImageQuery, [imageUrl]);
+    res.status(200).json({ message: "Image added successfully" });
+  } catch (error) {
+    res.status(500).send({ message: error.message });
+  }
 });
