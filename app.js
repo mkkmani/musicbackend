@@ -279,7 +279,11 @@ app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
 
 // Sample for checking
 app.get("/sample",async(req,res) =>{
-  res.status(200).json({message:'sample response fetched successfully})
-                       });
+  res.status(200).json({message:"sample response fetched successfully"})
+});
+
+app.get("/sample2",async(req,res) => {
+  res.status(200).json({message:"sample 2 for response checking"})
+});
 
 initDbAndServer();
