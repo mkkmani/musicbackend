@@ -192,3 +192,9 @@ app.get("/allVideos", async (req, res) => {
     });
   } catch (error) {}
 });
+
+//sample checking
+
+app.get("/sample", (req, res) => {
+  res.status(200).send("Working successfully, this is sample response");
+});
