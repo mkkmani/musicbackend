@@ -260,8 +260,8 @@ app.post("/add-admin", adminAuthorization, async (req, res) => {
 //Admin login
 
 app.post("/admin-login", async (req, res) => {
-  const { details } = req.body;
-  const { username, password } = details;
+  // const { details } = req.body;
+  // const { username, password } = details;
 
   // const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
   // db.run(checkAdmin, [username, username], (err, row) => {
