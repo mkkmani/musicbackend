@@ -181,7 +181,7 @@ app.post("/addVideo", adminAuthorization, async (req, res) => {
 app.get("/search", async (req, res) => {
   const { videoTitle } = req.query;
 
-  const getVideoQuery = `SELECT * FROM video WHERE videoTitle LIKE ?`;
+  const getVideoQuery = `SELECT * FROM videos WHERE videoTitle LIKE ?`;
 
   try {
    db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
