@@ -236,15 +236,17 @@ app.get("/allVideos", async (req, res) => {
 });
 
 //Admin login
+//Admin login
 app.post("/admin-login", async (req, res) => {
   const { details } = req.body;
   const { username, password } = details;
 
-  const checkAdmin = "select * from admins where adminMobile=? or adminEmail=?";
-  db.run(checkAdmin, [username, username], (err, row) => {
-    if (err) {
-      res.status(500).json({ message: "Internal error" });
-    } else if (!row) {
+  const checkAdmin = "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
+  
+  try {
+    const row = await db.get(checkAdmin, [username, username]);
+    
+    if (!row) {
       res.status(400).json({ message: "Admin details not found" });
     } else {
       const passwordMatched = await bcrypt.compare(password, row.adminPassword);
@@ -252,12 +254,16 @@ app.post("/admin-login", async (req, res) => {
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ jwt_token:  jwtToken  });
+        res.status(200).json({ jwtToken });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
     }
-  });
+  } catch (error) {
+    res.status(500).json({ message: "Internal error" });
+  }
+});
+
 
   // res.status(200).json({message:'admin login success'})
 });
