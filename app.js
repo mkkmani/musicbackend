@@ -264,10 +264,6 @@ app.post("/admin-login", async (req, res) => {
   }
 });
 
-
-  // res.status(200).json({message:'admin login success'})
-});
-
 //Add images to gallery
 app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
   try {
