@@ -60,11 +60,11 @@ const initDbAndServer = async () => {
         )
     `;
 
-    const hashP = await bcrypt.hash('adminpassword',10)
+    // const hashP = await bcrypt.hash('adminpassword',10)
 
-    const addDummyAdminQuery = `
-          insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
-    `
+    // const addDummyAdminQuery = `
+    //       insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
+    // `
 
     await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
     await db.run(createVideosTableQuery);
