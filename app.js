@@ -10,13 +10,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: "https://manimusic.netlify.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
-  })
-);
+app.use(cors());
 
 const dbPath = path.join(__dirname, "musicdb.db");
 
@@ -66,13 +60,24 @@ const initDbAndServer = async () => {
         )
     `;
 
+    // const hashP = await bcrypt.hash("admin", 10);
+
+    // const addDummyadmin = `
+    // insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)`;
+    // await db.run(addDummyadmin, [
+    //   "admin2",
+    //   "9879879879",
+    //   "admin2@email.com",
+    //   "admin@profile",
+    //   hashP,
+    // ]);
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
     await db.run(createGalleryQuery);
 
-    app.listen(6000, () => {
-      console.log("Database server is up and running at localhost 3000");
+    app.listen(3009, () => {
+      console.log("Database server is up and running at localhost 3008");
     });
   } catch (error) {
     console.log(`DB error: ${error.message}`);
@@ -99,7 +104,9 @@ const checkStudentAddedOrNot = async (req, res, next) => {
       next();
     }
   } catch (error) {
-    res.status(500).json({ message: "Internal server error adding student failed" });
+    res
+      .status(500)
+      .json({ message: "Internal server error adding student failed" });
   }
 };
 
@@ -128,20 +135,31 @@ const adminAuthorization = async (req, res, next) => {
 };
 
 // Add student
-app.post("/addStudent", adminAuthorization, checkStudentAddedOrNot, async (req, res) => {
-  const { details } = req;
-  const { name, email, mobile, profile, password } = details;
+app.post(
+  "/addStudent",
+  adminAuthorization,
+  checkStudentAddedOrNot,
+  async (req, res) => {
+    const { details } = req;
+    const { name, email, mobile, profile, password } = details;
 
-  try {
-    const hashedPassword = await bcrypt.hash(password, 13);
-    const addStudentQuery =
-      "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?, ?)";
-    await db.run(addStudentQuery, [name, email, mobile, profile, hashedPassword]);
-    res.status(200).json({ message: "Student added successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Request failed" });
+    try {
+      const hashedPassword = await bcrypt.hash(password, 13);
+      const addStudentQuery =
+        "INSERT INTO students (studentName, studentEmail, studentMobile, studentProfile, studentPassword) VALUES (?, ?, ?, ?, ?)";
+      await db.run(addStudentQuery, [
+        name,
+        email,
+        mobile,
+        profile,
+        hashedPassword,
+      ]);
+      res.status(200).json({ message: "Student added successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Request failed" });
+    }
   }
-});
+);
 
 //Login student
 app.post("/studentLogin", async (req, res) => {
@@ -181,7 +199,7 @@ app.post("/addVideo", adminAuthorization, async (req, res) => {
     const { videoTitle, videoLink } = details;
     const addVideoQuery =
       "insert into videos (videoTitle,videoLink) values(?,?)";
-     db.run(addVideoQuery, [videoTitle, videoLink]);
+    db.run(addVideoQuery, [videoTitle, videoLink]);
     res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
     res.status(500).json({ message: "Video adding failed" });
@@ -195,7 +213,7 @@ app.get("/search", async (req, res) => {
   const getVideoQuery = `SELECT * FROM videos WHERE videoTitle LIKE ?`;
 
   try {
-   db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
+    db.all(getVideoQuery, [`%${videoTitle}%`], (err, rows) => {
       if (err) {
         res.status(400).json({ error: err.message });
       } else {
@@ -211,7 +229,7 @@ app.get("/search", async (req, res) => {
 app.get("/allVideos", async (req, res) => {
   try {
     const allVideosQuery = "SELECT * FROM videos";
-   db.all(allVideosQuery, (err, rows) => {
+    db.all(allVideosQuery, (err, rows) => {
       if (err) {
         res.status(400).json({ error: err.message });
       } else {
@@ -224,7 +242,7 @@ app.get("/allVideos", async (req, res) => {
 });
 
 // Add admin
- app.post("/add-admin", adminAuthorization, async (req, res) => {
+app.post("/add-admin", adminAuthorization, async (req, res) => {
   try {
     const { details } = req.body;
     const { name, password, mobile, email, profile } = details;
@@ -238,7 +256,13 @@ app.get("/allVideos", async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 13);
       const addAdminQuery =
         "INSERT INTO admins (adminName, adminMobile, adminEmail, adminProfile, adminPassword) VALUES (?, ?, ?, ?, ?)";
-      await db.run(addAdminQuery, [name, mobile, email, profile, hashedPassword]);
+      await db.run(addAdminQuery, [
+        name,
+        mobile,
+        email,
+        profile,
+        hashedPassword,
+      ]);
       res.status(200).json({ message: "Admin added successfully" });
     }
   } catch (error) {
@@ -253,10 +277,10 @@ app.post("/admin-login", async (req, res) => {
   const { username, password } = details;
 
   const checkAdmin = "SELECT * FROM admins WHERE adminMobile=? OR adminEmail=?";
-  
+
   try {
     const row = await db.get(checkAdmin, [username, username]);
-    
+
     if (!row) {
       res.status(400).json({ message: "Admin details not found" });
     } else {
@@ -289,12 +313,12 @@ app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
 });
 
 // Sample for checking
-app.get("/sample",async(req,res) =>{
-  res.status(200).json({message:"sample response fetched successfully"})
+app.get("/sample", async (req, res) => {
+  res.status(200).json({ message: "sample response fetched successfully" });
 });
 
-app.get("/sample2",async(req,res) => {
-  res.status(200).json({message:"sample 2 for response checking"})
+app.get("/sample2", async (req, res) => {
+  res.status(200).json({ message: "sample 2 for response checking" });
 });
 
 initDbAndServer();
