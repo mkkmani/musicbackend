@@ -10,7 +10,11 @@ const app = express();
 
 app.use(express.json());
 
+<<<<<<< HEAD
 app.use(cors());
+=======
+app.use(cors())
+>>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
 
 const dbPath = path.join(__dirname, "musicdb.db");
 
@@ -59,13 +63,29 @@ const initDbAndServer = async () => {
             imageUrl text
         )
     `;
+<<<<<<< HEAD
+=======
+
+    // const hashP = await bcrypt.hash('adminpassword',10)
+
+    // const addDummyAdminQuery = `
+    //       insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
+    // `
+
+    // await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
+>>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
     await db.run(createGalleryQuery);
 
+<<<<<<< HEAD
     app.listen(4004, () => {
       console.log("Database server is up and running at localhost 3008");
+=======
+    app.listen(3005, () => {
+      console.log("Database server is up and running at localhost 3005");
+>>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
     });
   } catch (error) {
     console.log(`DB error: ${error.message}`);
@@ -76,9 +96,9 @@ const initDbAndServer = async () => {
 const checkStudentAddedOrNot = async (req, res, next) => {
   const { details } = req.body;
   const { name, mobile, email, profile, password } = details;
-  const checkStudentQuery = `SELECT * FROM students WHERE studentName=?`;
+  const checkStudentQuery = `SELECT * FROM students WHERE studentMobile=?`;
   try {
-    const row = await db.get(checkStudentQuery, [name]);
+    const row = await db.get(checkStudentQuery, [mobile]);
     if (row) {
       res.status(409).json({ message: "Student details already exist" });
     } else {
@@ -115,7 +135,7 @@ const adminAuthorization = async (req, res, next) => {
         res.status(401).json({ message: "Invalid token" });
       }
     } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
+      res.status(401).json({ message: error.message });
     }
   } else {
     res.status(401).json({ message: "Unauthorized access" });
@@ -282,7 +302,7 @@ app.post("/admin-login", async (req, res) => {
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ jwtToken });
+        res.status(200).json({ jwt_token:jwtToken });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
