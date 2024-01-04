@@ -66,7 +66,7 @@ const initDbAndServer = async () => {
     //       insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
     // `
 
-    await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
+    // await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
