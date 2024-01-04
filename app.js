@@ -10,13 +10,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: "https://manimusic.netlify.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
-  })
-);
+app.use(cors())
 
 const dbPath = path.join(__dirname, "musicdb.db");
 
@@ -71,8 +65,8 @@ const initDbAndServer = async () => {
     await db.run(createAdminsTableQuery);
     await db.run(createGalleryQuery);
 
-    app.listen(6000, () => {
-      console.log("Database server is up and running at localhost 3000");
+    app.listen(3005, () => {
+      console.log("Database server is up and running at localhost 3005");
     });
   } catch (error) {
     console.log(`DB error: ${error.message}`);
@@ -83,9 +77,9 @@ const initDbAndServer = async () => {
 const checkStudentAddedOrNot = async (req, res, next) => {
   const { details } = req.body;
   const { name, mobile, email, profile, password } = details;
-  const checkStudentQuery = `SELECT * FROM students WHERE studentName=?`;
+  const checkStudentQuery = `SELECT * FROM students WHERE studentMobile=?`;
   try {
-    const row = await db.get(checkStudentQuery, [name]);
+    const row = await db.get(checkStudentQuery, [mobile]);
     if (row) {
       res.status(409).json({ message: "Student details already exist" });
     } else {
@@ -120,7 +114,7 @@ const adminAuthorization = async (req, res, next) => {
         res.status(401).json({ message: "Invalid token" });
       }
     } catch (error) {
-      res.status(401).json({ message: "Invalid token" });
+      res.status(401).json({ message: error.message });
     }
   } else {
     res.status(401).json({ message: "Unauthorized access" });
@@ -265,7 +259,7 @@ app.post("/admin-login", async (req, res) => {
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ jwtToken });
+        res.status(200).json({ 'jwt_token':jwtToken });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
