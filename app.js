@@ -59,24 +59,12 @@ const initDbAndServer = async () => {
             imageUrl text
         )
     `;
-
-    // const hashP = await bcrypt.hash("admin", 10);
-
-    // const addDummyadmin = `
-    // insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)`;
-    // await db.run(addDummyadmin, [
-    //   "admin2",
-    //   "9879879879",
-    //   "admin2@email.com",
-    //   "admin@profile",
-    //   hashP,
-    // ]);
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
     await db.run(createGalleryQuery);
 
-    app.listen(3009, () => {
+    app.listen(4004, () => {
       console.log("Database server is up and running at localhost 3008");
     });
   } catch (error) {
@@ -156,7 +144,7 @@ app.post(
       ]);
       res.status(200).json({ message: "Student added successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Request failed" });
+      res.status(500).json({ error: "Failed to add student" });
     }
   }
 );
@@ -169,27 +157,32 @@ app.post("/studentLogin", async (req, res) => {
   const checkStudentQuery =
     "SELECT * FROM students WHERE studentEmail = ? OR studentMobile = ?";
 
-  db.get(checkStudentQuery, [username, username], (err, row) => {
-    if (err) {
-      res.status(500).json({ message: "request failed" });
-    } else if (!row) {
-      res.status(401).send("Invalid username");
-    } else {
-      bcrypt.compare(password, row.studentPassword, (bcryptErr, bcryptRes) => {
-        if (bcryptErr) {
+  try {
+    db.get(checkStudentQuery, [username, username], async (err, row) => {
+      if (err) {
+        res.status(500).json({ message: "Request failed" });
+      } else if (!row) {
+        res.status(401).json({ message: "Invalid username" });
+      } else {
+        try {
+          const bcryptRes = await bcrypt.compare(password, row.studentPassword);
+          if (bcryptRes) {
+            const payLoad = { id: row.id, studentName: row.studentName };
+            const jwtToken = jwt.sign(payLoad, "student token");
+            res.status(200).json({ jwtToken });
+          } else {
+            res.status(401).json({ message: "Invalid password" });
+          }
+        } catch (bcryptErr) {
           res
             .status(500)
             .json({ message: "Error occurred while comparing passwords" });
-        } else if (bcryptRes) {
-          const payLoad = { id: row.id, studentName: row.studentName };
-          const jwtToken = jwt.sign(payLoad, "student token");
-          res.status(200).json({ jwtToken: { jwtToken } });
-        } else {
-          res.status(401).json({ message: "Invalid password" });
         }
-      });
-    }
-  });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
 // Add video
@@ -200,10 +193,10 @@ app.post("/addVideo", adminAuthorization, async (req, res) => {
     const addVideoQuery =
       "insert into videos (videoTitle,videoLink) values(?,?)";
     db.run(addVideoQuery, [videoTitle, videoLink]);
-    res.status(200).json({ message: "Video added successfully" });
+     res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Video adding failed" });
-  }
+    res.status(500).json({ error: "Failed to add video" });
+  }}
 });
 
 //Get video
@@ -314,7 +307,7 @@ app.post("/add-to-gallery", adminAuthorization, async (req, res) => {
 
 // Sample for checking
 app.get("/sample", async (req, res) => {
-  res.status(200).json({ message: "sample response fetched successfully" });
+  res.status(200).json({ message: "Sample response fetched successfully" });
 });
 
 app.get("/sample2", async (req, res) => {
