@@ -10,11 +10,7 @@ const app = express();
 
 app.use(express.json());
 
-<<<<<<< HEAD
 app.use(cors());
-=======
-app.use(cors())
->>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
 
 const dbPath = path.join(__dirname, "musicdb.db");
 
@@ -63,29 +59,13 @@ const initDbAndServer = async () => {
             imageUrl text
         )
     `;
-<<<<<<< HEAD
-=======
-
-    // const hashP = await bcrypt.hash('adminpassword',10)
-
-    // const addDummyAdminQuery = `
-    //       insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
-    // `
-
-    // await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
->>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
     await db.run(createGalleryQuery);
 
-<<<<<<< HEAD
-    app.listen(4004, () => {
-      console.log("Database server is up and running at localhost 3008");
-=======
-    app.listen(3005, () => {
-      console.log("Database server is up and running at localhost 3005");
->>>>>>> 1dbe4eab6d6a48a94db0b582def82c9058181481
+    app.listen(4005, () => {
+      console.log("Database server is up and running at localhost 4005");
     });
   } catch (error) {
     console.log(`DB error: ${error.message}`);
@@ -112,7 +92,7 @@ const checkStudentAddedOrNot = async (req, res, next) => {
       next();
     }
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ message: "Internal server error adding student failed" });
   }
@@ -208,15 +188,25 @@ app.post("/studentLogin", async (req, res) => {
 // Add video
 app.post("/addVideo", adminAuthorization, async (req, res) => {
   try {
-    const { details } = req.details;
+    const { details } = req.body;
     const { videoTitle, videoLink } = details;
     const addVideoQuery =
-      "insert into videos (videoTitle,videoLink) values(?,?)";
-    db.run(addVideoQuery, [videoTitle, videoLink]);
-     res.status(200).json({ message: "Video added successfully" });
+      "INSERT INTO videos (videoTitle, videoLink) VALUES (?, ?)";
+
+    await new Promise((resolve, reject) => {
+      db.run(addVideoQuery, [videoTitle, videoLink], function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    res.status(200).json({ message: "Video added successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to add video" });
-  }}
+  }
 });
 
 //Get video
@@ -302,7 +292,7 @@ app.post("/admin-login", async (req, res) => {
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ jwt_token:jwtToken });
+        res.status(200).json({ jwt_token: jwtToken });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
