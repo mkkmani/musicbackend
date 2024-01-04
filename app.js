@@ -60,6 +60,13 @@ const initDbAndServer = async () => {
         )
     `;
 
+    const hashP = await bcrypt.hash('adminpassword',10)
+
+    const addDummyAdminQuery = `
+          insert into admins (adminName,adminMobile,adminEmail,adminProfile,adminPassword) values(?,?,?,?,?)
+    `
+
+    await db.run(addDummyAdminQuery, ['admin', 9876543210, 'admin@email.com', 'admin@profile', hashP]);
     await db.run(createVideosTableQuery);
     await db.run(createStudentsTableQuery);
     await db.run(createAdminsTableQuery);
@@ -259,7 +266,7 @@ app.post("/admin-login", async (req, res) => {
       if (passwordMatched) {
         const payLoad = { id: row.id, admin_name: row.adminName };
         const jwtToken = jwt.sign(payLoad, "admin token");
-        res.status(200).json({ 'jwt_token':jwtToken });
+        res.status(200).json({ jwt_token:jwtToken });
       } else {
         res.status(401).json({ message: "Invalid password" });
       }
